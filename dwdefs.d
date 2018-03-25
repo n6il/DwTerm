@@ -72,25 +72,3 @@ OP_VPORT_WRITE        equ  'v
 * Error definitions
 E_CRC      equ   $F3            Same as NitrOS-9 E$CRC
 
-* DW Globals Page Definitions (must be 256 bytes max)
-DW.StatCnt equ   15
-           org   $00
-DW.StatTbl rmb   DW.StatCnt     page pointers for terminal device static storage
-DW.VIRQPkt rmb   Vi.PkSz
-DW.VIRQNOP rmb   1
-
-* SCF Multi Terminal Driver Definitions
-
-         	org   	        V.SCF      	;V.SCF: free memory for driver to use
-SSigID          rmb             1              ;process ID for signal on data ready
-SSigSg          rmb             1              ;signal on data ready code
-RxDatLen	rmb		1              ;current length of data in Rx buffer
-RxBufSiz	rmb		1              ;Rx buffer size
-RxBufEnd	rmb		2              ;end of Rx buffer
-RxBufGet	rmb		2              ;Rx buffer output pointer
-RxBufPut	rmb		2              ;Rx buffer input pointer
-RxGrab		rmb		1              ;bytes to grab in multiread
-RxBufPtr	rmb		2              ;pointer to Rx buffer
-RxBufDSz	equ		256-.          ;default Rx buffer gets remainder of page...
-RxBuff		rmb		RxBufDSz       ;default Rx buffer
-SCFDrvMemSz     equ             .
