@@ -18,7 +18,7 @@ byte textPosX;  // 0..HIRESWIDTH
 byte textPosY;  // 0..HIRESHEIGHT-1
 byte *textScreenBuffer;
 byte hiResTextCursorPresent;
-void *oldCHROOT;
+ConsoleOutHook oldCHROOT;
 
 
 void initHiResTextScreen(byte textScreenPageNum, byte redirectPrintf)
