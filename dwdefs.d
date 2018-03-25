@@ -14,6 +14,13 @@
 * Addresses
 BBOUT       equ    $FF20
 BBIN        equ    $FF22
+ IFNE COCO3FPGAWIFI
+BCKCTRL     equ    $FF6C
+BCKDATA     equ    $FF6D
+ ELSE
+BCKCTRL     equ    $FF41
+BCKDATA     equ    $FF42
+ ENDC
 
 * Opcodes
 OP_NOP      equ    $00		No-Op

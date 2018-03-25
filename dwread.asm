@@ -111,10 +111,10 @@ DWRead    clra                          ; clear Carry (no framing error)
           IFEQ   NOINTMASK
           orcc   #IntMasks
           ENDC
-loop@     ldb    $FF41
+loop@     ldb    BCKCTRL
           bitb   #$02
           beq    loop@
-          ldb    $FF42
+          ldb    BCKDATA
           stb    ,u+
           abx
           leay   ,-y
@@ -149,7 +149,7 @@ DWRead	  clra                  ; clear Carry, Set Z
 ini@	  lda	 #120		; set RDYTMR to 120 jiffies = 2 seconds
 	  sta	 RDYTMR		;
 loop@
-	  ldb    $FF41		; test for data ready flag
+	  ldb    BCKCTRL		; test for data ready flag
           bitb   #$02
           bne    rdy@		; byte is ready
 	  tst	 RDYTMR		; test timer
@@ -160,7 +160,7 @@ loop@
 	  comb                  ; reset Z (timeout error)
 	  puls	 x,u,pc	        ; restore registers and return
 	;; a byte is ready
-rdy@      ldb    $FF42          ; get byte from port
+rdy@      ldb    BCKDATA          ; get byte from port
           stb    ,u+            ; store in data buffer
           abx                   ; add received byte to checksum
           leay   ,-y            ; decrement byte counter
