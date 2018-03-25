@@ -185,7 +185,7 @@ DWWrite   pshs      dp,d,cc             ; preserve registers
           ENDC
           ldd       #$04ff              ; A = loop counter, B = $ff
           tfr       b,dp                ; set direct page to $FFxx
-          setdp     $ff
+          * setdp     $ff
           ldb       <$ff23              ; read PIA 1-B control register
           andb      #$f7                ; clear sound enable bit
           stb       <$ff23              ; disable sound output
@@ -213,7 +213,7 @@ tx0020    stb       <BBOUT              ; send bit (start bit, d1, d3, d5)
 
           stb       <BBOUT              ; leave bit banger output at MARK
           puls      cc,d,dp,pc          ; restore registers and return
-          setdp     $00
+          * setdp     $00
 
           ENDC
           ENDC

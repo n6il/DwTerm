@@ -202,7 +202,7 @@ DWRead    clra                          ; clear Carry (no framing error)
           orcc      #IntMasks           ; mask interrupts
           ENDC
           tfr       a,dp                ; set direct page to $FFxx
-          setdp     $ff
+          * setdp     $ff
           leau      ,x                  ; U = storage ptr
           ldx       #0                  ; initialize checksum
           adda      #2                  ; A = $01 (serial in mask), set Carry
@@ -253,7 +253,7 @@ rxExit    leas      1,s                 ; remove timeout msb from stack
           sta       ,s                  ; ..C and Z bits of the preserved CC
           leay      ,x                  ; return checksum in Y
           puls      cc,dp,x,u,pc        ; restore registers and return
-          setdp     $00
+          * setdp     $00
 
 
           ELSE
@@ -270,7 +270,7 @@ DWRead    clrb                          ; clear Carry (no framing error)
           ENDC
 *         ldmd      #1                  ; requires 6309 native mode
           tfr       b,dp                ; set direct page to $FFxx
-          setdp     $ff
+          * setdp     $ff
           leay      -1,y                ; adjust request count
           leau      ,x                  ; U = storage ptr
           tfr       0,x                 ; initialize checksum
@@ -319,7 +319,7 @@ rx0050    inca                          ; A = status to be returned in C and Z
           sta       ,s                  ; ..C and Z bits of the preserved CC
           leay      ,x                  ; return checksum in Y
           puls      cc,dp,x,u,pc        ; restore registers and return
-          setdp     $00
+          * setdp     $00
 
 
           ELSE
@@ -335,7 +335,7 @@ DWRead    clra                          ; clear Carry (no framing error)
           orcc      #IntMasks           ; mask interrupts
           ENDC
           tfr       a,dp                ; set direct page to $FFxx
-          setdp     $ff
+          * setdp     $ff
           leau      ,x                  ; U = storage ptr
           ldx       #0                  ; initialize checksum
           lda       #$01                ; A = serial in mask
@@ -413,7 +413,7 @@ rxExit    leas      1,s                 ; remove timeout msb from stack
           sta       ,s                  ; ..C and Z bits of the preserved CC
           leay      ,x                  ; return checksum in Y
           puls      cc,dp,x,u,pc        ; restore registers and return
-          setdp     $00
+          * setdp     $00
 
           ENDC
           ENDC
