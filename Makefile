@@ -10,7 +10,7 @@ all: DWTERM.dsk
 clean:
 	rm -f *.o *.s *.lst *.map *.i
 	rm -f DWTRM*.BIN
-	rm -f DWTERM.DSK
+	rm -f DWTERM.dsk
 
 dw_becker.o: drivewire.c dwread.asm dwwrite.asm
 	$(CC) $(CFLAGS) -DDW_BECKER=1 -c -o $@ $<
@@ -51,7 +51,7 @@ DWTRMWI.BIN: dwterm.c $(OTHEROBJS) dw_coco3fpgawifi.o
 DWTERM.dsk: $(BINS)
 	rm -f DWTERM.dsk
 	decb dskini DWTERM.dsk
-	for i in $^; do  decb copy $$i DWTERM.DSK,$$i -b -2; done
+	for i in $^; do  decb copy $$i DWTERM.dsk,$$i -b -2; done
 	decb dir DWTERM.dsk,
 
 
