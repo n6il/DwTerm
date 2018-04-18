@@ -42,5 +42,6 @@
 
 int dw_read(uint8_t *buf, uint16_t count);
 int dw_write(uint8_t *buf, uint16_t count);
+void dw_init(void);
 #endif
 

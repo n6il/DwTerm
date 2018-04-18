@@ -183,6 +183,7 @@ int main()
 	printf("%s", banner);
 	printf("TYPE DW COMMANDS AT THE PROMPT\r\r");
 	
+   dw_init();
 	open_channel(1);
 	get_status(1, buffer);
 	printf("%s", prompt);

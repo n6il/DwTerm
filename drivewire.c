@@ -3,10 +3,9 @@
 
 #include "drivewire.h"
 
-asm int dw_read(uint8_t *buf, uint16_t count)
-{
-	asm
-	{
+asm void dw_init(void) {
+   asm
+   {
 		* DW Defines
 BECKER		EQU DW_BECKER
 JMCPBCK		EQU DW_JMPCPBCK
@@ -24,6 +23,18 @@ IntMasks	EQU $50
 * BBOUT       	equ    $FF20
 * BCKCTRL        	equ    $FF41
 * BCKDATA       	equ    $FF42
+
+      lbra dwinitbegin
+      use "dwinit.asm"
+dwinitbegin
+      lbsr DWInit
+   }
+}
+
+asm int dw_read(uint8_t *buf, uint16_t count)
+{
+	asm
+	{
 
 		lbra dwrbegin
 		use "dwread.asm"

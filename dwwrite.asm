@@ -74,7 +74,7 @@ DWWrite   pshs      d,cc              ; preserve registers
           ENDC
 txByte
           lda       ,x+
-          sta       $FF42
+          sta       BCKDATA
           leay      -1,y                ; decrement byte counter
           bne       txByte              ; loop if more to send
 
@@ -87,7 +87,7 @@ DWWrite   pshs      d,cc              ; preserve registers
           ENDC
 txByte
           lda       ,x+
-          sta       $FF42
+          sta       BCKDATA
           leay      -1,y                ; decrement byte counter
           bne       txByte              ; loop if more to send
 
