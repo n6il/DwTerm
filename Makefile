@@ -1,22 +1,31 @@
 CC = cmoc
-CFLAGS = 
+CFLAGS =
 
 OTHEROBJS = hirestxt.o font4x8.o
-BINS = DWTRMBCK.BIN DWTRMBB.BIN DWTRMBB1.BIN DWTRM232.BIN DWTRMWI.BIN DWTRMB63.BIN
+BINS = DWTRMBCK.BIN DWTRMBB.BIN DWTRMBB1.BIN DWTRM232.BIN DWTRMWI.BIN \
+	DWTRMB63.BIN DWTBCKLT.BIN DWTBB1LT.BIN
 
-all: DWTERM.dsk
+all: DWTERM.dsk DWTERM.zip
 	
 
 clean:
 	rm -f *.o *.s *.lst *.map *.i
-	rm -f DWTRM*.BIN
+	rm -f DWT*.BIN
+	rm -f DWT*.CAS
+	rm -f DWT*.WAV
 	rm -f DWTERM.dsk
+	rm -f DWTERM.zip
 
 dw_becker.o: drivewire.c dwread.asm dwwrite.asm
 	$(CC) $(CFLAGS) -DDW_BECKER=1 -c -o $@ $<
 
 DWTRMBCK.BIN: dwterm.c $(OTHEROBJS) dw_becker.o
 	$(CC) $(CFLAGS) -DDW_BECKER=1 -o $@ $^ 
+
+DWTBCKLT.BIN: dwterm.c dw_becker.o
+	$(CC) $(CFLAGS) --org=1800 -DLITE=1 -DDW_BECKER=1 -o $@ $^
+	bin2cas -r44100 -C -nDWTERM -l0x1800 -e0x1800 -o $(@:BIN=WAV) $@
+	bin2cas -C -nDWTERM -l0x1800 -e0x1800 -o $(@:BIN=CAS) $@
 
 dw_bb.o: drivewire.c dwread.asm dwwrite.asm
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -32,6 +41,11 @@ DWTRMB63.BIN: dwterm.c $(OTHEROBJS) dw_bb.o
 
 dw_bb1.o: drivewire.c dwread.asm dwwrite.asm
 	$(CC) $(CFLAGS) -DDW_BAUD38400=1 -c -o $@ $<
+
+DWTBB1LT.BIN: dwterm.c dw_bb1.o
+	$(CC) $(CFLAGS) --org=1800 -DLITE=1 -DDW_BAUD38400=1 -o $@ $^
+	bin2cas -r44100 -C -nDWTERM -l0x1800 -e0x1800 -o $(@:BIN=WAV) $@
+	bin2cas -C -nDWTERM -l0x1800 -e0x1800 -o $(@:BIN=CAS) $@
 
 DWTRMBB1.BIN: dwterm.c $(OTHEROBJS) dw_bb1.o
 	$(CC) $(CFLAGS) -DDW_BAUD38400=1 -o $@ $^
@@ -54,4 +68,5 @@ DWTERM.dsk: $(BINS)
 	for i in $^; do  decb copy $$i DWTERM.dsk,$$i -b -2; done
 	decb dir DWTERM.dsk,
 
-
+DWTERM.zip: $(BINS) DWTERM.dsk
+	zip $@ *.BIN *.CAS *.WAV DWTERM.dsk

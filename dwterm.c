@@ -6,10 +6,14 @@
 
 #include <coco.h>
 #include <cmoc.h>
+
+#ifndef LITE
 #include "hirestxt.h"
 // #include "hirestxt.c"
 #include "font4x8.h"
 // #include "font4x8.c"
+#endif
+
 #include "dwterm.h"
 #include "drivewire.h"
 
@@ -146,7 +150,7 @@ uint16_t get_line(uint8_t *buf)
 }
 
 #define SLEEP_FAST 5
-#define SLEEP_SLOW 20
+#define SLEEP_SLOW 200
 const char *prompt = "DWTERM> ";
 const char *banner = "DW TERMINAL 0.1\r(GPL) MARCH 25, 2018\rMICHAEL FURMAN <N6IL@OCS.NET>\r\r";
 
@@ -158,6 +162,7 @@ int main()
 	uint16_t sleep = SLEEP_SLOW;
 	
 	initCoCoSupport();
+#ifndef LITE
 	if (isCoCo3)
 	{
 		setHighSpeed(1);
@@ -179,6 +184,7 @@ int main()
 		if(i=='1')
 			initHiResTextScreen(0x0E00 / 512, TRUE);
 	}
+#endif
 	inkey(); // toss first key
 	printf("%s", banner);
 	printf("TYPE DW COMMANDS AT THE PROMPT\r\r");
