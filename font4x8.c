@@ -4,16 +4,10 @@
     This file is in the public domain.
 */
 
-//  Accompanies version 0.2.0 of hirestxt.h.
-
 #include "font4x8.h"
 
 
-// Characters 32 to 127 and 160 to 255.
-// Only the 5 high bits of each byte are part of the glyph.
-// The 3 low bits of each byte are zero.
-//
-unsigned char font4x8[1536] =
+const unsigned char font4x8[1536] =
 {
     0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, //  32 (0x20)
     0xd8, 0xd8, 0xd8, 0xd8, 0xd8, 0xf8, 0xd8, 0xf8, //  33 (0x21)

@@ -4,8 +4,6 @@
     This file is in the public domain.
 */
 
-//  Accompanies version 0.2.0 of hirestxt.h.
-
 #ifndef _font4x8_h_
 #define _font4x8_h_
 
@@ -14,7 +12,7 @@
 // Only the 5 high bits of each byte are part of the glyph.
 // The 3 low bits of each byte are zero.
 //
-extern unsigned char font4x8[1536];
+extern const unsigned char font4x8[1536];
 
 
 #endif  /* _font4x8_h_ */

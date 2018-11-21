@@ -9,23 +9,54 @@
         - #define HIRESTEXT_NO_VT52 to avoid compiling the VT-52 code.
 */
 
-/*  Version 0.1.0 - 2016-05-01 - First public release.
-    Version 0.1.1 - 2016-09-12 - Adapted to CMOC 0.1.31 re: inline asm.
-    Version 0.1.2 - 2016-12-26 - HIRESTEXT_NO_VT52 to avoid VT-52 code.
-    Version 0.2.0 - 2017-??-?? - Adapted to modular compilation under CMOC 0.1.43.
-*/
-
 #ifndef _hirestxt_h_
 #define _hirestxt_h_
 
 #include <coco.h>
 
-#include "font4x8.h"
+
+// Writes a character at position (x, y) on a 42x24 text screen.
+//
+void writeCharAt_42cols(byte x, byte y, byte asciiCode);
+
+
+// Writes a character at position (x, y) on a 42x24 text screen.
+//
+void writeCharAt_51cols(byte x, byte y, byte asciiCode);
+
+
+// Pointer to a function that writes a character at position (x, y).
+//
+typedef void (*WriteCharAtFuncPtr)(byte x, byte y, byte asciiCode);
+
+
+// Initializer to be used when calling initHiResTextScreen().
+//
+// numColumns: 42 or 51 (characters per line).
+//
+// writeCharAtFuncPtr: Either writeCharAt_42cols or writeCharAt_51cols.
+//                     Must be consistent with numColumns.
+//
+// textScreenPageNum: 512-byte page index in 0..127.
+// Actual graphics address becomes textScreenPageNum * 512.
+// To position the screen at $0E00, divide this address by 512,
+// which gives 7.
+//
+// If redirectPrintf is true, printf() will print to the
+// hi-res screen until closeHiResTextScreen() is called.
+// This option has no effect if HIRESTEXT_NO_VT52 is #defined.
+//
+struct HiResTextScreenInit
+{
+    byte numColumns;
+    WriteCharAtFuncPtr writeCharAtFuncPtr;
+    byte textScreenPageNum;
+    BOOL redirectPrintf;
+};
 
 
 enum
 {
-    HIRESWIDTH                    = 51,     // number of text columns
     HIRESHEIGHT                   = 24,     // number of text lines
     PIXEL_COLS_PER_SCREEN         = 256,
     PIXEL_ROWS_PER_SCREEN         = 192,
@@ -34,8 +65,12 @@ enum
 };
 
 
+// Width in characters of the high-resolution text screen.
+//
+extern byte hiResWidth;
+
 // Text cursor position.
-// textPosX is allowed to be equal to HIRESWIDTH. When this many characters
+// textPosX is allowed to be equal to hiResWidth. When this many characters
 // have been written on a line, the cursor is considered to be not on the
 // next line, but past the last displayed column on the original line.
 // Then when a '\n' is written, the cursor goes to column 0 of the next line.
@@ -44,7 +79,7 @@ enum
 //
 // To change this position, call moveCursor().
 //
-extern byte textPosX;  // 0..HIRESWIDTH
+extern byte textPosX;  // 0..hiResWidth
 extern byte textPosY;  // 0..HIRESHEIGHT-1
 
 // Location of the 6k PMODE 4 screen buffer.
@@ -61,20 +96,15 @@ void initVT52();
 #endif
 
 
-// Call this first.
+// Call this first, with a non null pointer to an initializer struct.
 //
-// textScreenPageNum: 512-byte page index in 0..127.
-// Actual graphics address becomes textScreenPageNum * 512.
-// To position the screen at $0E00, divide this address by 512,
-// which gives 7.
+// See struct HiResTextScreenInit above.
+//
+// Does not keep a reference of the HiResTextScreenInit object.
 //
 // The screen is cleared to green. The font is black on green.
 //
-// If redirectPrintf is true, printf() will print to the
-// hi-res screen until closeHiResTextScreen() is called.
-// This option has no effect if HIRESTEXT_NO_VT52 is #defined.
-//
-void initHiResTextScreen(byte textScreenPageNum, byte redirectPrintf);
+void initHiResTextScreen(struct HiResTextScreenInit *init);
 
 
 // Call this last.
@@ -95,7 +125,7 @@ void setTextScreenAddress(byte pageNum);
 
 
 // Writes a PRINTABLE 4x8 character at column x and row y of a 51x24 text screen.
-// x: 0..HIRESWIDTH-1.
+// x: 0..hiResWidth-1.
 // y: 0..HIRESHEIGHT-1.
 // asciiCode: MUST be in the range 32..127 or 160..255, except if 0,
 // which means invert colors at position (x, y).
@@ -116,7 +146,7 @@ void invertPixelsAtCursor();
 void scrollTextScreenUp();
 
 
-// x: Column number (0..HIRESWIDTH-1).
+// x: Column number (0..hiResWidth-1).
 // y: Row number (0..HIRESHEIGHT-1).
 // Does nothing if x or y are out of range.
 //
@@ -149,14 +179,14 @@ void writeChar(byte ch);
 // Calls writeChar() for each character in the given string,
 // up to and excluding the terminating '\0'.
 //
-void writeString(char *str);
+void writeString(const char *str);
 
 
 // row: 0..HIRESHEIGHT-1
-// line: String of at most HIRESWIDTH characters.
+// line: String of at most hiResWidth characters.
 // Leaves the cursor at the end of the line.
 //
-void writeCenteredLine(byte row, char *line);
+void writeCenteredLine(byte row, const char *line);
 
 
 // Writes unsigned word 'w' to the screen in decimal.
@@ -187,7 +217,7 @@ void removeCursor();
 void animateCursor();
 
 
-// Returns ASCII code of pressed key (using inkey()).
+// Returns ASCII code of pressed key (using inkey(), which calls Color Basic).
 // Uses textPosX, textPosY.
 //
 byte waitKeyBlinkingCursor();

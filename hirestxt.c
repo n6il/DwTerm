@@ -9,32 +9,36 @@
         - #define HIRESTEXT_NO_VT52 to avoid compiling the VT-52 code.
 */
 
-//  Accompanies version 0.2.0 of hirestxt.h.
-
 #include "hirestxt.h"
 
 
-byte textPosX;  // 0..HIRESWIDTH
-byte textPosY;  // 0..HIRESHEIGHT-1
+byte hiResWidth;
+byte textPosX;
+byte textPosY;
 byte *textScreenBuffer;
 byte hiResTextCursorPresent;
 ConsoleOutHook oldCHROOT;
+static void (*pfWriteCharAt)(byte x, byte y, byte asciiCode);
 
 
-void initHiResTextScreen(byte textScreenPageNum, byte redirectPrintf)
+void initHiResTextScreen(struct HiResTextScreenInit *init)
 {
     initCoCoSupport();
+
+    hiResWidth = (init->numColumns == 42 ? 42 : 51);  // required by moveCursor()
+    pfWriteCharAt = init->writeCharAtFuncPtr;
+
     width(32);  // PMODE graphics will only appear from 32x16 (does nothing on CoCo 1&2)
     moveCursor(0, 0);
-    setTextScreenAddress(textScreenPageNum);  // DECB's first PMODE 4 screen (7 * 512 = 0x0E00)
-    pcls(textScreenBuffer, 255);
-    showGraphicsAddress(textScreenPageNum);  // set SAM registers to show 0x0E00
-    showPmode4(0);  // green/black
+    setTextScreenAddress(init->textScreenPageNum);
+    pmode(4, textScreenBuffer);
+    pcls(255);
+    screen(1, 0);  // green/black
     #ifndef HIRESTEXT_NO_VT52
     initVT52();
     #endif
     hiResTextCursorPresent = FALSE;
-    if (redirectPrintf)
+    if (init->redirectPrintf)
         oldCHROOT = setConsoleOutHook(hiResTextConsoleOutHook);
     else
         oldCHROOT = 0;
@@ -46,10 +50,6 @@ void closeHiResTextScreen()
     if (oldCHROOT)
         setConsoleOutHook(oldCHROOT);
 }
-
-
-void processConsoleOutChar(byte ch);
-void writeString(char *str);
 
 
 asm void clearRowsToEOS(byte byteToClearWith, byte textRow)
@@ -116,31 +116,6 @@ void setTextScreenAddress(byte pageNum)
 }
 
 
-// Column  Byte    Bit     Mask 1   Mask 2
-//
-// 0       0       0       00000111 11111111
-// 1       0       5       11111000 00111111
-// 2       1       2       11000001 11111111
-// 3       1       7       11111110 00001111
-// 4       2       4       11110000 01111111
-// 5       3       1       10000011 11111111
-// 6       3       6       11111100 00011111
-// 7       4       3       11100000 11111111
-//
-// A frame is a 5-byte (40-bit) region.
-// In 51x24 mode, 8 characters (5 pixels wide each) fit in a frame.
-
-
-// frameByteAddrTable[c] is the byte offset in a frame of
-// the c-th (0..7) character in that frame.
-// frameBitOffsetTable[c] is the number of right shifts to apply
-// to position bits at the c-th (0..7) character of a frame.
-// frameMaskTable[c] is the AND mask that applies at the c-th (0..7)
-// character of a frame.
-//
-byte frameByteAddrTable[8]  = { 0, 0, 1, 1, 2, 3, 3, 4 };
-byte frameBitOffsetTable[8] = { 0, 5, 2, 7, 4, 1, 6, 3 };
-word frameMaskTable[8] = { 0x07ff, 0xf83f, 0xc1ff, 0xfe0f, 0xf07f, 0x83ff, 0xfc1f, 0xe0ff };
 
 
 // Called by PUTCHR, which is called by printf() et al.
@@ -175,183 +150,7 @@ void asm hiResTextConsoleOutHook()
 
 void writeCharAt(byte x, byte y, byte asciiCode)
 {
-#if 0 // Original (tested) code in CMOC:
-    byte frameCol = x % 8;
-    word *screenWord = (word *) (textScreenBuffer + y * 256 + x / 8 * 5 + frameByteAddrTable[frameCol]);
-        // 256 = 8 rows per character, times 32 bytes per pixel row
-
-    // In charBitmask, only the high 5 bits of each byte are significant.
-    // The others must be 0.
-    //
-    byte *charBitmask = font4x8 + (((word) asciiCode - (asciiCode < 128 ? 32 : 64)) << 3);
-
-    for (byte row = 0; row < PIXEL_ROWS_PER_TEXT_ROW; ++row)
-    {
-        word charWord = ((word) charBitmask[row]) << 8;  // load into A, reset B; high nybble of D now init
-        byte numShifts = frameBitOffsetTable[frameCol];
-        charWord = charWord >> numShifts;
-
-        word d = *screenWord;  // read screen bits (big endian word read)
-        word mask = frameMaskTable[frameCol];
-        if (asciiCode)
-        {
-            d &= mask;
-            d |= charWord;
-        }
-        else
-        {
-            d = (d & mask) | (d ^ ~mask);  // invert colors
-        }
-        *screenWord = d;
-
-        screenWord += 16;  // point to next row (32 bytes down)
-    }
-#else  // Equivalent code in assembler:
-    byte frameCol;
-    word *screenWord;
-    byte *charBitmask;
-    word numShifts;
-    word mask;
-    word invMask;
-    word charWord;
-    word temp;
-    word leftTerm;
-    word d;
-    byte row;
-
-    asm
-    {
-        ldb     :x      // Colon before name forces ref to C variable named 'x', not register X.
-        andb    #7
-        stb     frameCol
-
-        //word *screenWord = (word *) (textScreenBuffer + y * 256 + x / 8 * 5 + frameByteAddrTable[frameCol]);
-        ldb     frameCol
-        leax    frameByteAddrTable
-        ldb     b,x
-        stb     row                     // row used as temp storage
-
-        ldb     :x
-        lsrb
-        lsrb
-        lsrb
-        lda     #5
-        mul
-
-        addb    row
-        adca    #0
-
-        adda    :y
-        addd    textScreenBuffer
-        std     screenWord
-
-        //byte *charBitmask = font4x8 + (((word) asciiCode - (asciiCode < 128 ? 32 : 64)) << 3);
-        ldb     asciiCode
-        bpl     writeCharAt_sub32
-        subb    #64             // assuming B in 160..255
-        bra     writeCharAt_sub_done
-writeCharAt_sub32:
-        subb    #32
-writeCharAt_sub_done:
-        clra
-        lslb
-        rola
-        lslb
-        rola
-        lslb
-        rola
-        leax    font4x8
-        leax    d,x
-        stx     charBitmask
-
-        //word numShifts = frameBitOffsetTable[frameCol];
-        ldb     frameCol
-        leax    frameBitOffsetTable
-        ldb     b,x
-        clra
-        std     numShifts
-
-        //word mask = frameMaskTable[frameCol];
-        ldb     frameCol
-        lslb                    // index in array of words
-        leax    frameMaskTable
-        ldd     b,x
-        std     mask
-
-        //word invMask = ~mask;
-        coma
-        comb
-        std     invMask
-
-        clr     row
-
-writeCharAt_for:
-        //charWord = ((word) charBitmask[row]) << 8;  // load into A, reset B; high nybble of D now init
-        ldx     charBitmask
-        ldb     row
-        lda     b,x
-        clrb
-
-        //charWord = charWord >> numShifts;
-        ldx     numShifts       // counter
-        beq     writeCharAt_shifts_done
-writeCharAt_shift_loop:
-        lsra
-        rorb
-        leax    -1,x
-        bne     writeCharAt_shift_loop
-writeCharAt_shifts_done:
-        std     charWord
-
-        //word d = *screenWord;  // read screen bits (big endian word read)
-        ldx     screenWord
-        ldd     ,x
-        std     :d
-        //if (asciiCode)
-        tst     asciiCode
-        beq     writeCharAt_nul
-
-        //d &= mask;
-        //d |= charWord;
-        ldd     :d
-        anda    mask
-        andb    mask[1]         // non-standard notation: adds one to offset applied on U
-        ora     charWord
-        orb     charWord[1]
-        std     :d
-        bra     writeCharAt_after_if
-
-        //else: d = (d & mask) | (d ^ invMask);  // invert colors
-writeCharAt_nul:
-        std     temp
-        anda    mask
-        andb    mask[1]
-        std     leftTerm
-
-        ldd     temp
-        eora    invMask
-        eorb    invMask[1]
-
-        ora     leftTerm
-        orb     leftTerm[1]
-        std     :d
-writeCharAt_after_if:
-
-        //*screenWord = d;
-        //screenWord += 16;  // point to next row (32 bytes down)
-        ldx     screenWord
-        ldd     :d
-        std     ,x
-        leax    BYTES_PER_PIXEL_ROW,x
-        stx     screenWord
-
-        ldb     row
-        incb
-        stb     row
-        cmpb    #PIXEL_ROWS_PER_TEXT_ROW
-        blo     writeCharAt_for
-    }
-#endif
+    (*pfWriteCharAt)(x, y, asciiCode);
 }
 
 
@@ -360,7 +159,7 @@ void invertPixelsAtCursor()
     byte x = textPosX;
     byte y = textPosY;
 
-    if (x >= HIRESWIDTH)  // logical position that gets mapped to start of next line
+    if (x >= hiResWidth)  // logical position that gets mapped to start of next line
     {
         x = 0;
         ++y;
@@ -368,7 +167,7 @@ void invertPixelsAtCursor()
             y = HIRESHEIGHT - 1;
     }
 
-    writeCharAt(x, y, 0);
+    (*pfWriteCharAt)(x, y, 0);
 }
 
 
@@ -448,7 +247,7 @@ void scrollTextScreenUp()
 
 void moveCursor(byte x, byte y)
 {
-    if (x >= HIRESWIDTH)
+    if (x >= hiResWidth)
         return;
     if (y >= HIRESHEIGHT)
         return;
@@ -460,7 +259,7 @@ void moveCursor(byte x, byte y)
 
 void goToNextRowIfPastEndOfRow()
 {
-    if (textPosX < HIRESWIDTH)  // if not past end of current row
+    if (textPosX < hiResWidth)  // if not past end of current row
         return;
 
     textPosX = 0;
@@ -485,7 +284,7 @@ void writeChar(byte ch)
             --textPosX;
         else if (textPosY > 0)
         {
-            textPosX = HIRESWIDTH - 1;
+            textPosX = hiResWidth - 1;
             --textPosY;
         }
     }
@@ -498,14 +297,14 @@ void writeChar(byte ch)
         goToNextRowIfPastEndOfRow();
 
         byte newX = (textPosX | 7) + 1;
-        if (newX > HIRESWIDTH)  // tab at 48..50 leads to 56: clamp
-            newX = HIRESWIDTH;
+        if (newX > hiResWidth)  // tab at 48..50 leads to 56: clamp; similarly in 42x24 mode
+            newX = hiResWidth;
         for (byte numSpaces = newX - textPosX; numSpaces; --numSpaces)
             writeString(" ");
     }
     else if (ch == '\n')
     {
-        // Note that textPosX may be HIRESWIDTH at this point.
+        // Note that textPosX may be hiResWidth at this point.
         //
         textPosX = 0;
         ++textPosY;
@@ -532,17 +331,17 @@ void writeChar(byte ch)
 
         // Write char at cursor, advance cursor, go to next line if needed.
         //
-        writeCharAt(textPosX, textPosY, ch);
+        (*pfWriteCharAt)(textPosX, textPosY, ch);
         ++textPosX;
 
-        // textPosX may now be HIRESHEIGHT, which is not a writable column,
+        // textPosX may now be hiResWidth, which is not a writable column,
         // but we tolerate it for easier management of a newline that comes
-        // after writing 51 chars on a row.
+        // after writing 51 (or 42) printable chars on a row.
     }
 }
 
 
-void writeString(char *str)
+void writeString(const char *str)
 {
     for (;;)
     {
@@ -556,9 +355,9 @@ void writeString(char *str)
 }
 
 
-void writeCenteredLine(byte row, char *line)
+void writeCenteredLine(byte row, const char *line)
 {
-    moveCursor((byte) ((HIRESWIDTH - strlen(line)) / 2), row);
+    moveCursor((byte) ((hiResWidth - strlen(line)) / 2), row);
     writeString(line);
 }
 
@@ -572,8 +371,8 @@ void writeDecWord(word w)
 
 void clrtoeol()
 {
-    for (byte x = textPosX; x != HIRESWIDTH; ++x)
-        writeCharAt(x, textPosY, ' ');
+    for (byte x = textPosX; x != hiResWidth; ++x)
+        (*pfWriteCharAt)(x, textPosY, ' ');
 }
 
 
@@ -733,7 +532,7 @@ void processConsoleOutChar(byte ch)
         }
         if (ch == 'C')  // cursor right
         {
-            if (textPosX < HIRESWIDTH - 1)
+            if (textPosX < hiResWidth - 1)
                 ++textPosX;
             vt52State = VT52_TEXT;  // end of sequence
             return;

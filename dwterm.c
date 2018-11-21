@@ -163,6 +163,13 @@ int main()
 	
 	initCoCoSupport();
 #ifndef LITE
+	struct HiResTextScreenInit hrinit =
+	{
+	    51,
+	    writeCharAt_51cols,
+	    (byte) (0x0E00 / 512),
+	    TRUE
+	};
 	if (isCoCo3)
 	{
 		setHighSpeed(1);
@@ -172,7 +179,7 @@ int main()
 		if(i=='1')
 			width(80);
 		else if(i=='2')
-			initHiResTextScreen(0x0E00 / 512, TRUE);
+			initHiResTextScreen(&hrinit);
 		else if(i=='3')
 			width(32);
 	}
@@ -182,7 +189,7 @@ int main()
 		i=0;
 		while(!i) i=inkey();
 		if(i=='1')
-			initHiResTextScreen(0x0E00 / 512, TRUE);
+			initHiResTextScreen(&hrinit);
 	}
 #endif
 	inkey(); // toss first key
