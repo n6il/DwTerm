@@ -24,8 +24,8 @@ DWTRMBCK.BIN: dwterm.c $(OTHEROBJS) dw_becker.o
 
 DWTBCKLT.BIN: dwterm.c dw_becker.o
 	$(CC) $(CFLAGS) --org=1800 -DLITE=1 -DDW_BECKER=1 -o $@ $^
-	bin2cas -r44100 -C -nDWTERM -l0x1800 -e0x1800 -o $(@:BIN=WAV) $@
-	bin2cas -C -nDWTERM -l0x1800 -e0x1800 -o $(@:BIN=CAS) $@
+	bin2cas -r 44100 -C -n DWTERM -l 0x1800 -e 0x1800 -o $(@:BIN=WAV) $@
+	bin2cas -C -n DWTERM -l 0x1800 -e 0x1800 -o $(@:BIN=CAS) $@
 
 dw_bb.o: drivewire.c dwread.asm dwwrite.asm
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -44,8 +44,8 @@ dw_bb1.o: drivewire.c dwread.asm dwwrite.asm
 
 DWTBB1LT.BIN: dwterm.c dw_bb1.o
 	$(CC) $(CFLAGS) --org=1800 -DLITE=1 -DDW_BAUD38400=1 -o $@ $^
-	bin2cas -r44100 -C -nDWTERM -l0x1800 -e0x1800 -o $(@:BIN=WAV) $@
-	bin2cas -C -nDWTERM -l0x1800 -e0x1800 -o $(@:BIN=CAS) $@
+	bin2cas -r 44100 -C -n DWTERM -l 0x1800 -e 0x1800 -o $(@:BIN=WAV) $@
+	bin2cas -C -n DWTERM -l 0x1800 -e 0x1800 -o $(@:BIN=CAS) $@
 
 DWTRMBB1.BIN: dwterm.c $(OTHEROBJS) dw_bb1.o
 	$(CC) $(CFLAGS) -DDW_BAUD38400=1 -o $@ $^
