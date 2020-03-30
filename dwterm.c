@@ -12,6 +12,8 @@
 // #include "hirestxt.c"
 #include "font4x8.h"
 // #include "font4x8.c"
+#include "vt100.h"
+#include "width64.h"
 #endif
 
 #include "dwterm.h"
@@ -26,12 +28,18 @@
 #define SS_Open 0x29
 #define SS_Close 0x2A
 
+#ifdef LITE
+#define vt100_puts printf
+#define vt100_putchar putchar
+#define vt100 putchar
+#endif
 
 //#define DEBUG
 
 uint8_t channel_open = 0;
 #define BUFFER_SIZE 1024
 uint8_t buffer[BUFFER_SIZE];
+uint8_t vt100En = 0;
 
 void dw_putb(uint8_t c)
 {
@@ -152,7 +160,23 @@ uint16_t get_line(uint8_t *buf)
 #define SLEEP_FAST 5
 #define SLEEP_SLOW 200
 const char *prompt = "DWTERM> ";
-const char *banner = "DW TERMINAL 0.1\r(GPL) MARCH 25, 2018\rMICHAEL FURMAN <N6IL@OCS.NET>\r\r";
+const char *banner = "DW TERMINAL 0.2dev\r\n(GPL) MARCH 30, 2020\r\nMICHAEL FURMAN <N6IL@OCS.NET>\r\n\r\n";
+
+void dwtrm_puts(char *s)
+{
+	if (vt100En)
+		vt100_puts(s);
+	else
+		printf(s);
+}
+
+void dwtrm_putchar(char s)
+{
+	if (vt100En)
+		vt100_putchar(s);
+	else
+		putchar(s);
+}
 
 int main()
 {
@@ -160,6 +184,8 @@ int main()
 	uint16_t n;
 	uint8_t iac = 0;
 	uint16_t sleep = SLEEP_SLOW;
+	uint8_t brk = 0;
+	uint8_t echo = 1;
 	
 	initCoCoSupport();
 #ifndef LITE
@@ -173,42 +199,96 @@ int main()
 	if (isCoCo3)
 	{
 		setHighSpeed(1);
-		printf("SELECT SCREEN MODE\r\r(1) COCO3 80X24\r(2) PMODE 4 51X24 SCREEN\r(3) DEFAULT 32X16 SCREEN");
+		printf("SELECT SCREEN MODE\r\r(1) COCO3 80X24 ANSI\r(2) PMODE 4 51X24 VT52\r(3) DEFAULT 32X16 ANSI");
 		i=0;
 		while(!i) i=inkey();
-		if(i=='1')
+		if(i=='1') {
 			width(80);
-		else if(i=='2')
+			vt100_setup(80, 24, 1, (uint8_t *)0x8000);
+			vt100En = 1;
+		} else if(i=='2') {
 			initHiResTextScreen(&hrinit);
-		else if(i=='3')
+		}
+		else if(i=='3') {
 			width(32);
+			vt100_setup(32, 16, 0, (uint8_t *)0x400);
+			vt100En = 1;
+		}
 	}
 	else	
 	{
-		printf("SELECT SCREEN MODE\r\r(1) PMODE 4 51X24 SCREEN\r(2) DEFAULT 32X16 SCREEN");
+#ifdef LITE
+		vt100En = 0;
+#else
+		printf("SELECT SCREEN MODE\r\r(1) COCOGGA 64X32 ANSI\r(2) PMODE 4 51X24 VT52\r (3) DEFAULT 32X16 ANSI");
 		i=0;
 		while(!i) i=inkey();
-		if(i=='1')
+		if(i=='1') {
+			width64();
+			vt100_setup(64, 32, 0, (uint8_t *)0xe00);
+			vt100En = 1;
+		}
+		else if(i=='2') {
 			initHiResTextScreen(&hrinit);
+		}
+		else {
+			vt100_setup(32, 16, 0, (uint8_t *)0x400);
+			vt100En = 1;
+		}
+#endif
+
 	}
 #endif
 	inkey(); // toss first key
-	printf("%s", banner);
-	printf("TYPE DW COMMANDS AT THE PROMPT\r\r");
+	dwtrm_puts(banner);
+	dwtrm_puts("CLOSE: BREAK-C  QUIT: BREAK-Q\r\n");
+	dwtrm_puts("ECHO: BREAK-E   ^C: BREAK-BREAK\r\n");
+	dwtrm_puts("TYPE DW COMMANDS AT THE PROMPT\r\n\r\n");
 	
    dw_init();
 	open_channel(1);
 	get_status(1, buffer);
-	printf("%s", prompt);
+	dwtrm_puts(prompt);
 	while(1)
 	{
 		// Get Keyboard Input
 		i=inkey();
 		if( i )
 		{
-			putchar( i );
-			writeChannel(1, i);
-			sleep = SLEEP_FAST;
+			if (i == 3) {
+				if (brk == 0)
+					brk = i;
+				else if (brk == 3) {
+					brk = 0;
+				}
+			} else if (brk == 3) {
+				if ( i == 'Q' || i == 'q' ) {
+					dwtrm_puts("\r\nCLOSING CHANNEL\r\n");
+					close_channel(1);
+					dwtrm_puts("\r\nQUIT\r\n");
+					break;
+				} else if ( i  == 'C' || i == 'c' ) {
+					dwtrm_puts("\r\nCLOSING CHANNEL\r\n");
+					channel_open = 0;
+					sleep = 1;
+				} else if ( i  == 'E' || i == 'e' ) {
+					echo ^= 0x01;
+					dwtrm_puts("\r\nECHO ");
+					dwtrm_puts(echo ? "ON" : "OFF");
+					dwtrm_puts("\r\n");
+					brk = 0;
+					continue;
+				} else {
+					brk = 0;
+				}
+
+			} 
+			if (brk == 0) {
+				if (echo)
+					dwtrm_putchar( i );
+				writeChannel(1, i);
+				sleep = SLEEP_FAST;
+			}
 		}
 		// Make the keyboard more reactive by only polling it
 		// frequently.  DW will be polled for data only when sleep
@@ -250,11 +330,14 @@ int main()
 					break;
 				case 255:
 				// Console has auto newline so dump it
-				case '\n':
+				// case '\n':
 					break;
 				// Write any other chars to the console
 				default:
-					putchar(i);
+					if (vt100En)
+						vt100(i);
+					else if (i != '\n')
+						putchar(i);
 			}
 			// if (i != '\n')
 			//	putchar(i);
@@ -268,7 +351,9 @@ int main()
 			open_channel(1);
 			//asm("emubrk");
 			get_status(1, buffer);
-			printf( "\r%s", prompt);
+			dwtrm_puts("\r\n");
+			dwtrm_puts(prompt);
+			brk = 0;
 		}
 	};
 	

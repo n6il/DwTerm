@@ -1,7 +1,7 @@
 CC = cmoc
 CFLAGS =
 
-OTHEROBJS = hirestxt.o font4x8.o writeCharAt_51cols.o
+OTHEROBJS = hirestxt.o font4x8.o writeCharAt_51cols.o vt100.o coco3.o width64.o
 BINS = DWTRMBCK.BIN DWTRMBB.BIN DWTRMBB1.BIN DWTRM232.BIN DWTRMWI.BIN \
 	DWTRMB63.BIN DWTBCKLT.BIN DWTBB1LT.BIN
 
