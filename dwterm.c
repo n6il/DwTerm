@@ -32,6 +32,7 @@
 #define vt100_puts printf
 #define vt100_putchar putchar
 #define vt100 putchar
+#define sgrClear()
 #endif
 
 //#define DEBUG
@@ -220,7 +221,7 @@ int main()
 #ifdef LITE
 		vt100En = 0;
 #else
-		printf("SELECT SCREEN MODE\r\r(1) COCOGGA 64X32 ANSI\r(2) PMODE 4 51X24 VT52\r (3) DEFAULT 32X16 ANSI");
+		printf("SELECT SCREEN MODE\r\r(1) COCOVGA 64X32 ANSI\r(2) PMODE 4 51X24 VT52\r(3) DEFAULT 32X16 ANSI");
 		i=0;
 		while(!i) i=inkey();
 		if(i=='1') {
@@ -351,6 +352,8 @@ int main()
 			open_channel(1);
 			//asm("emubrk");
 			get_status(1, buffer);
+			if (vt100En)
+				sgrClear();
 			dwtrm_puts("\r\n");
 			dwtrm_puts(prompt);
 			brk = 0;

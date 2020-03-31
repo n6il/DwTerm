@@ -21,6 +21,7 @@ int vt100(char);
 void vt100_putchar(char);
 void vt100_puts(char *);
 void vt100_putstr(char *, size_t);
+void sgrClear(void);
 
 #endif
 
