@@ -3,13 +3,13 @@ CFLAGS =
 
 OTHEROBJS = hirestxt.o font4x8.o writeCharAt_51cols.o vt100.o coco3.o width64.o
 BINS = DWTRMBCK.BIN DWTRMBB.BIN DWTRMBB1.BIN DWTRM232.BIN DWTRMWI.BIN \
-	DWTRMB63.BIN DWTBCKLT.BIN DWTBB1LT.BIN
+	DWTRMB63.BIN DWTBCKLT.BIN DWTBB1LT.BIN DWTMMPI1.BIN DWTMMPI2.BIN
 
 all: DWTERM.dsk DWTERM.zip
 	
 
 clean:
-	rm -f *.o *.s *.lst *.map *.i
+	rm -f *.o *.s *.lst *.map *.i *.link
 	rm -f DWT*.BIN
 	rm -f DWT*.CAS
 	rm -f DWT*.WAV
@@ -61,6 +61,20 @@ dw_coco3fpgawifi.o: drivewire.c dwread.asm dwwrite.asm
 
 DWTRMWI.BIN: dwterm.c $(OTHEROBJS) dw_coco3fpgawifi.o
 	$(CC) $(CFLAGS) -DDW_COCO3FPGAWIFI=1 -DDW_BECKER=1 -o $@ $^ 
+
+# MegaMiniMPI - has 2 uarts, DW_MMMUART=1 or DW_MMMUART=2
+dw_megaminimpi1.o: drivewire.c dwread.asm dwwrite.asm
+	$(CC) $(CFLAGS) -DDW_MEGAMINIMPI=1 -DDW_MMMUART=1 -c -o $@ $<
+
+DWTMMPI1.BIN: dwterm.c $(OTHEROBJS) dw_megaminimpi1.o
+	$(CC) $(CFLAGS) -DDW_MEGAMINIMPI=1 -DDW_MMMUART=1 -o $@ $^
+
+dw_megaminimpi2.o: drivewire.c dwread.asm dwwrite.asm
+	$(CC) $(CFLAGS) -DDW_MEGAMINIMPI=1 -DDW_MMMUART=2 -c -o $@ $<
+
+DWTMMPI2.BIN: dwterm.c $(OTHEROBJS) dw_megaminimpi1.o
+	$(CC) $(CFLAGS) -DDW_MEGAMINIMPI=1 -DDW_MMMUART=2 -o $@ $^
+
 
 DWTERM.dsk: $(BINS)
 	rm -f DWTERM.dsk

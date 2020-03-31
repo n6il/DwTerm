@@ -16,6 +16,13 @@ NOINTMASK	EQU DW_NOINTMASK
 H6309		EQU DW_H6309
 SY6551N		EQU DW_SY6551N
 COCO3FPGAWIFI	EQU DW_COCO3FPGAWIFI
+MEGAMINIMPI     EQU DW_MEGAMINIMPI
+ IFEQ  1-DW_MMMUART
+MMMUARTB	EQU MMMU1A
+ ENDC
+ IFEQ 2-DW_MMMUART
+MMMUARTB	EQU MMMU2A
+ ENDC
 
 		use "dwdefs.d"
 IntMasks	EQU $50
@@ -45,7 +52,7 @@ dwrbegin
 		lbsr DWRead
 		bne allread@
 		bcs frameerr@
-		clrd		nothing read
+		ldd #0		nothing read
 		bra done@
 frameerr@
 		ldd #-1		framing error
@@ -71,7 +78,7 @@ dwwbegin
 		lbsr DWWrite
 		tfr x,d
 		subd 2,s	buf
-		decd
+		subd #-1
 		puls x,y
 	}
 }

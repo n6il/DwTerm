@@ -40,6 +40,14 @@
 #define DW_COCO3FPGAWIFI 0
 #endif
 
+#ifndef DW_MEGAMINIMPI
+#define DW_MEGAMINIMPI 0
+#endif
+
+#ifndef DW_MMMUART
+#define DW_MMMUART 0
+#endif
+
 int dw_read(uint8_t *buf, uint16_t count);
 int dw_write(uint8_t *buf, uint16_t count);
 void dw_init(void);

@@ -31,6 +31,103 @@ loop@     tst       $FF53              ; check status register
 
           ELSE
 
+          IFNE MEGAMINIMPI
+ IFNE 0
+************************************************************************
+* Original Unoptimized Version
+DWWrite   pshs      d,cc              ; preserve registers
+          IFEQ      NOINTMASK
+          orcc      #IntMasks         ; mask interrupts
+          ENDC
+          lda       MPIREG            ; Get Current MPI Status
+          pshs      a                 ; Save it
+          anda      #CTSMASK          ; Mask out SCS, save CTS
+          ora       #MMMSLT           ; SCS Slot Selection
+          sta       MPIREG            ; write the info to MPI register
+txByte
+          lda       MMMUARTB+LSR      ; read status register to check
+          anda      #LSRTHRE          ; if transmit fifo has room
+          beq       txByte            ; if not loop back and check again
+          lda       ,x+               ; load byte from buffer
+          sta       MMMUARTB          ; and write it to data register
+          leay      -1,y              ; decrement byte counter
+          bne       txByte            ; loop if more to send
+          puls      a                 ; Get original MPI Register back
+          sta       MPIREG            ; Restore it
+          puls      cc,d,pc           ; restore registers and return
+************************************************************************
+ ENDC
+ IFNE 1
+************************************************************************
+* DP Optmizied - v2
+DWWrite   pshs      d,dp,cc           ; preserve registers
+
+          IFEQ      NOINTMASK
+          orcc      #IntMasks         ; mask interrupts
+          ENDC
+
+          lda       #$ff
+          tfr       a,dp
+
+          lda       <MPIREG           ; Get Current MPI Status
+          pshs      a                 ; Save it
+          anda      #CTSMASK          ; Mask out SCS, save CTS
+          ora       #MMMSLT           ; SCS Slot Selection
+          sta       <MPIREG           ; write the info to MPI register
+
+txByte@   lda       #LSRTHRE          ; Transmit Holding Register Empty mask
+loop@     bita      <MMMUARTB+LSR     ; Check Bit
+          beq       loop@             ; loop if not empty
+          ldb       ,x+               ; load byte from buffer
+          stb       <MMMUARTB         ; and write it to data register
+          leay      -1,y              ; decrement byte counter
+          bne       loop@             ; loop if more to send
+
+          puls      a                 ; Get original MPI Register back
+          sta       <MPIREG           ; Restore it
+
+          puls      cc,dp,d,pc        ; restore registers and return
+************************************************************************
+ ENDC
+
+ IFNE 0
+************************************************************************
+* DP + StopAtOne
+DWWrite   pshs      d,dp,cc           ; preserve registers
+          IFEQ      NOINTMASK
+          orcc      #IntMasks         ; mask interrupts
+          ENDC
+
+          lda       #$ff              ; Set up DP register for
+          tfr       a,dp              ; Direct Page Mode
+
+          lda       <MPIREG           ; Get Current MPI Status
+          pshs      a                 ; Save it
+          anda      #CTSMASK          ; Mask out SCS, save CTS
+          ora       #MMMSLT           ; SCS Slot Selection
+          sta       <MPIREG           ; write the info to MPI register
+
+txByte@   lda       #LSRTHRE          ; Transmit Holding Register Empty mask
+loop@     bita      <MMMUARTB+LSR     ; Check Bit
+          beq       loop@             ; loop if not empty
+          cmpy      #1                ; Check if ony one more
+          beq       one@              ; Go to one byte routine
+          ldd       ,x++              ; load 2 bytes from buffer
+          std       <MMMUARTB+DL16    ; and write them to data register
+          leay      -2,y              ; decrement byte counter
+          bne       txByte@           ; loop if more to send
+          beq       end@              ; finished
+one@      lda       ,x+               ; load byte from buffer
+          sta       <MMMUARTB         ; and write it to data register
+          leay      -1,y              ; decrement byte counter
+end@
+
+          puls      a                 ; Get original MPI Register back
+          sta       <MPIREG           ; Restore it
+          puls      cc,dp,d,pc        ; restore registers and return
+************************************************************************
+ ENDC
+          ELSE
           IFNE SY6551N
           IFNDEF    SY6551B
 SY6551B   EQU       $FF68             ; Set base address for future use
@@ -97,8 +194,9 @@ txByte
           ENDC
           ENDC
           ENDC
+          ENDC
 
-          IFEQ BECKER+JMCPBCK+ARDUINO+BECKERTO+SY6551N
+          IFEQ BECKER+JMCPBCK+ARDUINO+BECKERTO+SY6551N+MEGAMINIMPI
           IFNE BAUD38400
 *******************************************************
 * 38400 bps using 6809 code and timimg
