@@ -10,7 +10,7 @@ DwTerm is a terminal program for RS-DOS on the TRS-80 Color Computer 1/2/3.  Thi
 * (new for v0.2) Break-Q to Quit
 * (new for v0.2) Break-Break to send Ctrl-C
 
-###Download the latest version from:
+### Download the latest version from:
 [https://github.com/n6il/DwTerm/releases/latest](https://github.com/n6il/DwTerm/releases/latest)
 
 ### Documentation & GitHub Site:
