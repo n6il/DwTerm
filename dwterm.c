@@ -161,7 +161,7 @@ uint16_t get_line(uint8_t *buf)
 #define SLEEP_FAST 5
 #define SLEEP_SLOW 200
 const char *prompt = "DWTERM> ";
-const char *banner = "DW TERMINAL 0.2dev\r\n(GPL) MARCH 30, 2020\r\nMICHAEL FURMAN <N6IL@OCS.NET>\r\n\r\n";
+const char *banner = "DW TERMINAL v0.2\r\n(GPL) APRIL 18, 2020\r\nMICHAEL FURMAN <N6IL@OCS.NET>\r\n\r\n";
 
 void dwtrm_puts(char *s)
 {

@@ -1,8 +1,32 @@
-# DwTerm
+# DwTerm v0.2
 A RSDOS DriveWire 4 Terminal Program
 
-Download the latest version from:
-[http://www.ocs.net/~n6il/DWTERM.zip](http://www.ocs.net/~n6il/DWTERM.zip)
+DwTerm is a terminal program for RS-DOS on the TRS-80 Color Computer 1/2/3.  This program uses the DriveWire protocol for communication.  A connection to a DriveWire server is _required_.
+
+* (new for v0.2) ANSI Support for CoCo1/2/3 on 32x16 VDG
+* (new for v0.2) ANSI Support for CoCo1/2 64x32 on CoCoVGA
+* (new for v0.2) ANSI Support for CoCo3 on 80x25 GIME
+* (new for v0.2) Break-C to hang up connection
+* (new for v0.2) Break-Q to Quit
+* (new for v0.2) Break-Break to send Ctrl-C
+
+###Download the latest version from:
+[https://github.com/n6il/DwTerm/releases/latest](https://github.com/n6il/DwTerm/releases/latest)
+
+### Documentation & GitHub Site:
+[https://github.com/n6il/DwTerm](https://github.com/n6il/DwTerm)
+
+### Using it
+At the `DWTERM>` prompt you can type `dw` commands.  Here are some examples:
+
+* Dial out to the internet: `ATD<host>:<port>` or `telnet <host> <port>`
+* `dw disk show`
+* `dw disk insert <drive> <path>`
+* `help` for more commands
+* Break-C to hang up connection
+* Break-Q to Quit
+* Break-Break to send Ctrl-C
+
 
 ## ZIP File Distribution ##
 The Zip file Contains both:
