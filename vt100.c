@@ -77,9 +77,9 @@ enum vt100_state_e {
 enum vt100_state_e vt100state = -1;
 
 #ifdef _CMOC_VERSION_
-int8_t isgraph(char c)
+int isgraph(int c)
 {
-    return (c>=' ' && c<=0x127);
+    return (c>=' ' && c<=0x7f);
 }
 #endif
 
@@ -91,7 +91,7 @@ void printline(char *data, int N)
 		printf("%02x ", data[i]);
 	printf(" ");
 	for(i=0;i<N;i++)
-		if(isgraph((unsigned char) data[i]))
+		if(isgraph(data[i]))
 			printf("%c", data[i]);
 		else
 			printf(".");
@@ -123,7 +123,8 @@ void STATE_CHANGE(char c, int ns) {
 */
 #define STATE_CHANGE(c, ns) vt100state = ns
 
-#ifdef _CMOC_VERSION_
+// #ifdef _CMOC_VERSION_
+#if 0
 int isdigit(unsigned char c)
 {
     return ((c-48) < 10);
@@ -734,6 +735,21 @@ int vt100(char c) {
             case ';':
                 if (vt100state == STATE_NUM) {
                     STATE_CHANGE(c, STATE_SEMI);
+                } else {
+                    STATE_CHANGE(c, STATE_ERROR);
+                }
+                break;
+
+            // ICH insert blank characters
+            case '@':
+                if (vt100state == STATE_NUM) {
+                    for (i=0; i<vt100nums[0]; i++) {
+                        asm {
+                            lda #$20
+                            lbsr vt100_putchar_a
+                        }
+                    }
+                    STATE_CHANGE(c, STATE_FINISH);
                 } else {
                     STATE_CHANGE(c, STATE_ERROR);
                 }
