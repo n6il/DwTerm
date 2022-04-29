@@ -162,6 +162,7 @@ uint16_t get_line(uint8_t *buf)
 #define SLEEP_SLOW 200
 const char *prompt = "DWTERM> ";
 const char *banner = "DW TERMINAL v0.2\r\n(GPL) APRIL 18, 2020\r\nMICHAEL FURMAN <N6IL@OCS.NET>\r\n\r\n";
+const char *demostr = "ssh localhost demo demo\r";
 
 void dwtrm_puts(char *s)
 {
@@ -187,7 +188,10 @@ int main()
 	uint16_t sleep = SLEEP_SLOW;
 	uint8_t brk = 0;
 	uint8_t echo = 1;
-	
+
+	uint8_t demo = 1;
+	const char *demop = demostr;
+
 	initCoCoSupport();
 #ifndef LITE
 	struct HiResTextScreenInit hrinit =
@@ -201,7 +205,8 @@ int main()
 	{
 		setHighSpeed(1);
 		printf("SELECT SCREEN MODE\r\r(1) COCO3 80X24 ANSI\r(2) PMODE 4 51X24 VT52\r(3) DEFAULT 32X16 ANSI");
-		i=0;
+		i='1';
+		// while(!i) i=inkey();
 		while(!i) i=inkey();
 		if(i=='1') {
 			width(80);
@@ -223,7 +228,6 @@ int main()
 #else
 		printf("SELECT SCREEN MODE\r\r(1) COCOVGA 64X32 ANSI\r(2) PMODE 4 51X24 VT52\r(3) DEFAULT 32X16 ANSI");
 		i=0;
-		while(!i) i=inkey();
 		if(i=='1') {
 			width64();
 			vt100_setup(64, 32, 0, (uint8_t *)0xe00);
@@ -253,7 +257,10 @@ int main()
 	while(1)
 	{
 		// Get Keyboard Input
-		i=inkey();
+		if (sleep==SLEEP_SLOW && demo)
+			i=demo=*demop++;
+		else
+			i=inkey();
 		if( i )
 		{
 			if (i == 3) {
